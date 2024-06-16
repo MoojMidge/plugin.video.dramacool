@@ -28,13 +28,13 @@ from re import compile, search
 
 from bs4 import BeautifulSoup, NavigableString, SoupStrainer
 from requests import Session
-from requests.exceptions import ConnectionError
-from xbmcext import getLocalizedString, getSetting, urlparse
+from requests.exceptions import ConnectionError, RequestException
+from xbmcext import Log, getLocalizedString, getSetting, urlparse
 from xbmcext.pymaybe import maybe
 
 
 class Request(object):
-    domains = getSetting('domain1') or 'watchasia.to', getSetting('domain2')
+    domains = getSetting('domain1'), 'watchasia.to', getSetting('domain2'), 'asianc.to'
     session = Session()
 
     @classmethod
@@ -44,9 +44,11 @@ class Request(object):
                 try:
                     response = cls.session.get('https://{}{}'.format(domain, path))
 
-                    if response.status_code == 200:
+                    if response.ok:
                         return response.text
-                except:
+                    Log.warning('{}{}\n{}'.format(domain, path, response))
+                except RequestException as ex:
+                    Log.error('{}{}\n{}'.format(domain, path, ex))
                     pass
 
         raise ConnectionError(getLocalizedString(33504))

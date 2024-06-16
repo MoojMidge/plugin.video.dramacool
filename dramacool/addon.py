@@ -32,7 +32,7 @@ from resolveurl import resolve, scrape_supported
 from xbmcext import Dialog, Keyboard, ListItem, Log, Plugin, SortMethod, executebuiltin, getLocalizedString, sleep, ResourceManager
 
 from database import Drama, ExternalDatabase, InternalDatabase, RecentDrama, RecentFilter
-from request import Request
+from request import ConnectionError, Request
 
 plugin = Plugin()
 
@@ -71,7 +71,10 @@ def search_type(type, keyword, page):
 
     for path, title, poster in shows:
         item = Drama.get_or_none(Drama.path == path) if type == 'movies' else Drama(title=title, poster=poster)
-        item = item if item else Drama.create(**Request.drama_detail(path))
+        try:
+            item = item if item else Drama.create(**Request.drama_detail(path))
+        except ConnectionError:
+            continue
         items.append((plugin.getSerializedUrlFor(path), item, True))
 
     items.extend(iter_pages(pages))
@@ -114,7 +117,10 @@ def recently_viewed():
 
     for recent_drama in RecentDrama.select(RecentDrama.path).order_by(RecentDrama.timestamp.desc()):
         item = Drama.get_or_none(Drama.path == recent_drama.path)
-        item = item if item else Drama.create(**Request.drama_detail(recent_drama.path))
+        try:
+            item = item if item else Drama.create(**Request.drama_detail(recent_drama.path))
+        except ConnectionError:
+            continue
         item.addContextMenuItems([(getLocalizedString(33100), 'RunPlugin({})'.format(plugin.getSerializedUrlFor('/recently-viewed', delete=item.path))),
                                   (getLocalizedString(33101), 'RunPlugin({})'.format(plugin.getSerializedUrlFor('/recently-viewed', delete='%')))])
         items.append((plugin.getUrlFor(item.path), item, True))
@@ -175,7 +181,10 @@ def recently_added(page):
         if item:
             item.setLabel(title)
         else:
-            item = Drama.create(**Request.episode_drama_detail(path))
+            try:
+                item = Drama.create(**Request.episode_drama_detail(path))
+            except ConnectionError:
+                continue
         item.setProperty('IsPlayable', 'true')
         items.append((plugin.getSerializedUrlFor(path), item, False))
 
@@ -286,7 +295,10 @@ def popular_drama(page):
 
     for path in shows:
         item = Drama.get_or_none(Drama.path == path)
-        item = item if item else Drama.create(**Request.drama_detail(path))
+        try:
+            item = item if item else Drama.create(**Request.drama_detail(path))
+        except ConnectionError:
+            continue
         items.append((plugin.getSerializedUrlFor(path), item, True))
 
     items.extend(iter_pages(pages))
@@ -316,7 +328,10 @@ def star():
 
     for path in shows:
         item = Drama.get_or_none(Drama.path == path)
-        item = item if item else Drama.create(**Request.drama_detail(path))
+        try:
+            item = item if item else Drama.create(**Request.drama_detail(path))
+        except ConnectionError:
+            continue
         items.append((plugin.getSerializedUrlFor(path), item, True))
 
     plugin.addSortMethods(SortMethod.TITLE, SortMethod.VIDEO_YEAR)
